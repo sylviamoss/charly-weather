@@ -18,11 +18,11 @@ services:
         - PORT=8080
       restart: unless-stopped
   
-  wethear-api:
-    build: .
-    ports:
-      - "8081:8081"
-    environment:
-      - PORT=8081
-      - WINDSPEED_HOST=http://windspeed:8080
-      - TEMPERATURE_HOST=http://temperature:8000
+  # wethear-api:
+  #   build: .
+  #   ports:
+  #     - "8081:8081"
+  #   environment:
+  #     - PORT=8081
+  #     - WINDSPEED_BASE_URL=http://windspeed:8080
+  #     - TEMPERATURE_BASE_URL=http://temperature:8000
