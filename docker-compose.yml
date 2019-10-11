@@ -17,3 +17,12 @@ services:
       environment:
         - PORT=8080
       restart: unless-stopped
+  
+  wethear-api:
+    build: .
+    ports:
+      - "8081:8081"
+    environment:
+      - PORT=8081
+      - WINDSPEED_HOST=http://windspeed:8080
+      - TEMPERATURE_HOST=http://temperature:8000
