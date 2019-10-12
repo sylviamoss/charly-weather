@@ -16,10 +16,10 @@ type TemperatureGateway struct {
 	httpClient *HttpClient
 }
 
-func NewTemperatureGateway() *TemperatureGateway {
+func NewTemperatureGateway(client *HttpClient) *TemperatureGateway {
 	return &TemperatureGateway{
 		baseURL:    os.Getenv("TEMPERATURE_BASE_URL"),
-		httpClient: NewHttpClient(),
+		httpClient: client,
 	}
 }
 
@@ -31,7 +31,7 @@ func (g *TemperatureGateway) GetTemperatureAt(date string) (*Temperature, *HttpE
 
 	var temperature Temperature
 	if err := json.Unmarshal(body, &temperature); err != nil {
-		return nil, HttpErrorBuilder().From(http.StatusText(http.StatusInternalServerError), "Failed to build temperature response.")
+		return nil, HttpErrorBuilder().From(http.StatusText(http.StatusInternalServerError), "Failed to unmarshal temperature response.")
 	}
 
 	return &temperature, nil

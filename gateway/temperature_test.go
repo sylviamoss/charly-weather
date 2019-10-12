@@ -3,6 +3,7 @@ package gateway
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -19,9 +20,7 @@ func TestTemperatureGatewayTestSuite(t *testing.T) {
 }
 
 func (suite *TemperatureGatewayTestSuite) SetupTest() {
-	suite.gateway = &TemperatureGateway{
-		baseURL: "http://baseurl.com",
-	}
+	os.Setenv("TEMPERATURE_BASE_URL", "http://baseurl.com")
 }
 
 func (suite *TemperatureGatewayTestSuite) TestGatewayShouldReturnTemperatureForAGivenDate() {
@@ -38,9 +37,10 @@ func (suite *TemperatureGatewayTestSuite) TestGatewayShouldReturnTemperatureForA
 		})
 		w.Write([]byte(json))
 	})
-	suite.gateway.httpClient = &HttpClient{
+	httpClient := &HttpClient{
 		client: NewHttpClientForTesting(handler),
 	}
+	suite.gateway = NewTemperatureGateway(httpClient)
 
 	// When
 	temperature, err := suite.gateway.GetTemperatureAt("2018-08-12T12:00:00Z")
@@ -62,9 +62,10 @@ func (suite *TemperatureGatewayTestSuite) TestGatewayShouldReturnErrorWhenStatus
 		})
 		w.Write([]byte(json))
 	})
-	suite.gateway.httpClient = &HttpClient{
+	httpClient := &HttpClient{
 		client: NewHttpClientForTesting(handler),
 	}
+	suite.gateway = NewTemperatureGateway(httpClient)
 
 	// When
 	temperature, err := suite.gateway.GetTemperatureAt("")
@@ -73,6 +74,27 @@ func (suite *TemperatureGatewayTestSuite) TestGatewayShouldReturnErrorWhenStatus
 	assert.DeepEqual(suite.T(), *err, HttpError{
 		Type:    http.StatusText(http.StatusBadRequest),
 		Message: "Date is not a valid RFC3339 DateTime",
+	})
+	assert.Assert(suite.T(), temperature == nil)
+}
+
+func (suite *TemperatureGatewayTestSuite) TestGatewayShouldReturnErrorWhenStatusBodyIsEmpty() {
+	// Given
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	httpClient := &HttpClient{
+		client: NewHttpClientForTesting(handler),
+	}
+	suite.gateway = NewTemperatureGateway(httpClient)
+
+	// When
+	temperature, err := suite.gateway.GetTemperatureAt("")
+
+	// Then
+	assert.DeepEqual(suite.T(), *err, HttpError{
+		Type:    http.StatusText(http.StatusInternalServerError),
+		Message: "Failed to unmarshal temperature response.",
 	})
 	assert.Assert(suite.T(), temperature == nil)
 }
