@@ -6,6 +6,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/google/uuid v1.1.1
+	github.com/hashicorp/go-multierror v1.0.0
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.3.0 // indirect
 	github.com/rs/zerolog v1.15.0

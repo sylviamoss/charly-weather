@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -51,7 +50,6 @@ func NewHttpClientForTesting(handler http.Handler) *http.Client {
 }
 
 func (c *HttpClient) MakeRequest(method string, url string) ([]byte, *HttpError) {
-	fmt.Println(url)
 	response, err := c.client.Get(url)
 	if err != nil {
 		return nil, HttpErrorBuilder().From(http.StatusText(http.StatusInternalServerError), err.Error())

@@ -37,10 +37,11 @@ type Module struct {
 }
 
 func NewModule() *Module {
+	httpClient := NewHttpClient()
 	return &Module{
 		logger:       log.Output(zerolog.ConsoleWriter{Out: os.Stderr}),
-		temperatures: NewTemperatureGateway(NewHttpClient()),
-		speeds:       NewWindspeedGateway(NewHttpClient()),
+		temperatures: NewTemperatureGateway(httpClient),
+		speeds:       NewWindspeedGateway(httpClient),
 	}
 }
 
@@ -161,7 +162,75 @@ func (m *Module) GetSpeed(c echo.Context) error {
 }
 
 func (m *Module) GetWeather(c echo.Context) error {
-	return nil
+	startDate, endDate, err := getStartdAndEndDateFromRequest(c)
+	if err != nil {
+		m.logger.Error().Msg(err.Type + " " + err.Message)
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	var wg sync.WaitGroup
+	ch := make(chan Weather)
+	errc := make(chan HttpError)
+	defer close(ch)
+	defer close(errc)
+
+	for !startDate.After(endDate) {
+		wg.Add(1)
+		go func(startDate time.Time) {
+			var httpErrors []HttpError
+
+			var speed Windspeed
+			if err := m.speeds.GetResourceAt(startDate.Format("2006-01-02T15:04:05Z"), &speed); err != nil {
+				m.logger.Error().Msg(err.Type + " " + err.Message)
+				httpErrors = append(httpErrors, *err)
+			}
+
+			var temp Temperature
+			if err := m.temperatures.GetResourceAt(startDate.Format("2006-01-02T15:04:05Z"), &temp); err != nil {
+				m.logger.Error().Msg(err.Type + " " + err.Message)
+				httpErrors = append(httpErrors, *err)
+			}
+
+			if len(httpErrors) > 0 {
+				errc <- httpErrors[0]
+				return
+			}
+
+			ch <- Weather{
+				North: speed.North,
+				West:  speed.West,
+				Temp:  temp.Temp,
+				Date:  temp.Date,
+			}
+		}(startDate)
+		startDate = startDate.Add(time.Hour * 24)
+	}
+
+	var weathers []Weather
+	go func() {
+		for weather := range ch {
+			weathers = append(weathers, weather)
+			wg.Done()
+		}
+	}()
+
+	var httpErros []HttpError
+	go func() {
+		for httpError := range errc {
+			httpErros = append(httpErros, httpError)
+			wg.Done()
+		}
+	}()
+	wg.Wait()
+
+	if len(httpErros) > 0 {
+		return c.JSON(http.StatusInternalServerError, httpErros[0])
+	}
+
+	sort.Slice(weathers, func(i, j int) bool {
+		return weathers[i].Date < weathers[j].Date
+	})
+	return c.JSON(http.StatusOK, weathers)
 }
 
 func getStartdAndEndDateFromRequest(c echo.Context) (time.Time, time.Time, *HttpError) {
