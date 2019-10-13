@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+
+  wethear-api-test:
+    image: golang:latest
+    volumes:
+    - .:/charly-weather
+    working_dir: /charly-weather
+    command: bash -c "pwd && go mod download && go test --cover -v ./..."

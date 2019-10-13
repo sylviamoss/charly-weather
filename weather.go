@@ -237,16 +237,15 @@ func getStartdAndEndDateFromRequest(c echo.Context) (time.Time, time.Time, *Http
 	start := c.QueryParam("start")
 	end := c.QueryParam("end")
 	if start == "" || end == "" {
-		err := HttpErrorBuilder().From(http.StatusText(http.StatusBadRequest), "Please provide both start and end dates")
-		return time.Now(), time.Now(), err
+		return time.Now(), time.Now(), &HttpError{http.StatusText(http.StatusBadRequest), "Please provide both start and end dates"}
 	}
 
 	startDate, startErr := time.Parse("2006-01-02T15:04:05Z", start)
 	endDate, err := time.Parse("2006-01-02T15:04:05Z", end)
 	if startErr != nil || err != nil {
-		err := HttpErrorBuilder().From(http.StatusText(http.StatusBadRequest), "Please provide dates with format ISO8601 DateTime (eg. 2018-08-12T12:00:00Z)")
-		return time.Now(), time.Now(), err
+		return time.Now(), time.Now(), &HttpError{http.StatusText(http.StatusBadRequest), "Please provide dates with format ISO8601 DateTime (eg. 2018-08-12T12:00:00Z)"}
 	}
+
 	startDate = startDate.Truncate(24 * time.Hour)
 	endDate = endDate.Truncate(24 * time.Hour)
 	return startDate, endDate, nil

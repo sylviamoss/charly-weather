@@ -36,7 +36,7 @@ func (g *GatewayModule) GetResourceAt(date string, resource interface{}) *HttpEr
 	}
 
 	if err := json.Unmarshal(body, resource); err != nil {
-		return HttpErrorBuilder().From(http.StatusText(http.StatusInternalServerError), "Failed to unmarshal resource response.")
+		return &HttpError{http.StatusText(http.StatusInternalServerError), "Failed to unmarshal resource response."}
 	}
 
 	return nil

@@ -19,16 +19,6 @@ type HttpError struct {
 	Message string `json:"message,omitempty"`
 }
 
-func HttpErrorBuilder() *HttpError {
-	return &HttpError{}
-}
-
-func (e *HttpError) From(errorType string, message string) *HttpError {
-	e.Type = errorType
-	e.Message = message
-	return e
-}
-
 func NewHttpClient() *HttpClient {
 	return &HttpClient{
 		client: &http.Client{
@@ -52,7 +42,7 @@ func NewHttpClientForTesting(handler http.Handler) *http.Client {
 func (c *HttpClient) MakeRequest(method string, url string) ([]byte, *HttpError) {
 	response, err := c.client.Get(url)
 	if err != nil {
-		return nil, HttpErrorBuilder().From(http.StatusText(http.StatusInternalServerError), err.Error())
+		return nil, &HttpError{http.StatusText(http.StatusInternalServerError), err.Error()}
 	}
 	defer response.Body.Close()
 
@@ -63,7 +53,7 @@ func (c *HttpClient) MakeRequest(method string, url string) ([]byte, *HttpError)
 
 	responseBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, HttpErrorBuilder().From(http.StatusText(http.StatusInternalServerError), err.Error())
+		return nil, &HttpError{http.StatusText(http.StatusInternalServerError), err.Error()}
 	}
 
 	return responseBody, nil
@@ -75,9 +65,9 @@ func validateResponseStatus(response *http.Response) *HttpError {
 		body, err := ioutil.ReadAll(response.Body)
 		_ = json.Unmarshal(body, &httpError)
 		if err != nil {
-			return HttpErrorBuilder().From(http.StatusText(response.StatusCode), "Something went wrong...")
+			return &HttpError{http.StatusText(response.StatusCode), "Something went wrong..."}
 		}
-		return HttpErrorBuilder().From(http.StatusText(response.StatusCode), httpError.Message)
+		return &HttpError{http.StatusText(response.StatusCode), httpError.Message}
 	}
 	return nil
 }
